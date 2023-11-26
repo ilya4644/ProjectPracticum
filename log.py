@@ -1,27 +1,14 @@
 import logging
+import sys
 from colorama import init, Fore, Style
+from loguru import logger
 
-logger = logging.getLogger(__name__)
 
 
 def start_log(log_file_path='logfile.log'):
-    init(autoreset=True)
-
-    log_format = '[%(asctime)s] %(levelname)s | %(name)s | %(message)s'
-
-    error_format = logging.Formatter('[%(asctime)s] ERROR | %(name)s | ERROR | %(message)s')
-    error_handler = logging.StreamHandler()
-    error_handler.setFormatter(error_format)
-    error_handler.setLevel(logging.ERROR)
-
-    file_handler = logging.FileHandler(log_file_path)
-    file_handler.setFormatter(logging.Formatter(log_format))
-    file_handler.setLevel(logging.INFO)
-
-    logging.basicConfig(format=log_format, level=logging.INFO, handlers=[error_handler, file_handler])
-
-    logging.addLevelName(logging.INFO, f"{Fore.CYAN}{logging.getLevelName(logging.INFO)}{Style.RESET_ALL}")
-    logging.addLevelName(logging.WARNING, f"{Fore.MAGENTA}{logging.getLevelName(logging.WARNING)}{Style.RESET_ALL}")
-    logging.addLevelName(logging.ERROR, f"{Fore.RED}{logging.getLevelName(logging.ERROR)}{Style.RESET_ALL}")
-
-
+    logger.remove()
+    logger.add(log_file_path, level="INFO", format="<green>[{time:YYYY-MM-DD HH:mm:ss}]</green> <level>{"
+                                                   "level}</level> <cyan>| {name}</cyan> | <level>{message}</level>")
+    logger.add(sys.stderr, level="ERROR", format="<red>[{time:YYYY-MM-DD HH:mm:ss}] ERROR | {name} | ERROR | {"
+                                                 "message}</red>", filter=lambda record: record["level"].name ==
+                                                                                         "ERROR")
