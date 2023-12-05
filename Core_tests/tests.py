@@ -80,22 +80,6 @@ async def load_json_data(file_path):
         return json.load(fh)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize('json_file', [
-    'axiswise_rot/axiswise_rot_diff_id.json',
-    'axiswise_rot/axiswise_rot_wrong_params.json'
-])
-async def test_incorrect_json_data(json_file):
-    data = await load_json_data(json_file)
-    with pytest.raises(ValueError):
-        await check_new_json(data)
-
-
-async def load_json_data(file_path):
-    with open(file_path, 'r', encoding='utf-8') as fh:
-        return json.load(fh)
-
-
 class TestIncorrectNewJson:
 
     @pytest.mark.asyncio
