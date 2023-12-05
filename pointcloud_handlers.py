@@ -1,4 +1,4 @@
-from entities import *
+from entities import RequestQuery, ResponseQuery
 import pathlib
 from pct.utils import rotate_point_cloud_by_axis, swap_point_cloud_file_axes,\
     convert_ply_to_xyz, color_ply_by_height, create_point_cloud_from_bags
@@ -21,7 +21,8 @@ def get_axis_swap(q: RequestQuery, filename: str):
 
         q.output_dir = f"{q.output_dir}/{filename}.ply"
         os.rename(str(swapped_cloud), q.output_dir)
-        return q.make_response()
+        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
+        return response.make_response()
     except ValueError as e:
         logger.error(str(e))
 
@@ -41,7 +42,8 @@ def get_axiswise_rot(q: RequestQuery, filename: str):
 
         q.output_dir = f"{q.output_dir}/{filename}.ply"
         os.rename(str(rotated_cloud), q.output_dir)
-        return q.make_response()
+        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
+        return response.make_response()
     except ValueError as e:
         logger.error(str(e))
 
@@ -52,10 +54,10 @@ def get_conv_ply_xyz(q: RequestQuery, filename: str):
         xyz_cloud = convert_ply_to_xyz(ply_cloud)
         q.output_dir = f"{q.output_dir}/{filename}.xyz"
         os.rename(str(xyz_cloud), q.output_dir)
-        return q.make_response()
+        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
+        return response.make_response()
     except ValueError as e:
         logger.error(str(e))
-        return q.make_response()
 
 
 def get_height_color(q: RequestQuery, filename: str):
@@ -69,7 +71,8 @@ def get_height_color(q: RequestQuery, filename: str):
         )
         q.output_dir = f"{q.output_dir}/{filename}.ply"
         os.rename(str(colored_cloud), q.output_dir)
-        return q.make_response()
+        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
+        return response.make_response()
     except ValueError as e:
         logger.error(str(e))
 
@@ -85,6 +88,7 @@ async def get_unbag(q: RequestQuery, filename: str):
             with_name=filename
         )
         q.output_dir = str(point_cloud)
-        return await q.make_response()
+        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
+        return response.make_response()
     except ValueError as e:
         logger.error(str(e))

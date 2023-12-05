@@ -48,6 +48,7 @@ async def check_new_json(data: dict):
         logger.error(str(e))
         from receive import receive_input_response
         await receive_input_response()
+        raise e
 
 
 async def get_json_diff(expected_output_response: dict, differences: dict):
