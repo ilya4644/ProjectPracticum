@@ -92,15 +92,15 @@ async def exec_handler(q: RequestQuery, filename: str):
 
     match q.operation_type:
         case "unbag":
-            return await asyncio.create_task(execute_task(get_unbag(q, filename)))
+            return await asyncio.create_task(get_unbag(q, filename))
         case "conv_ply_xyz":
-            return await asyncio.create_task(execute_task(get_conv_ply_xyz(q, filename)))
+            return await asyncio.create_task(get_conv_ply_xyz(q, filename))
         case "height_color":
-            return await asyncio.create_task(execute_task(get_height_color(q, filename)))
+            return await asyncio.create_task(get_height_color(q, filename))
         case "axis_swap":
-            return await asyncio.create_task(execute_task(get_axis_swap(q, filename)))
+            return await asyncio.create_task(get_axis_swap(q, filename))
         case "axiswise_rot":
-            return await asyncio.create_task(execute_task(get_axiswise_rot(q, filename)))
+            return await asyncio.create_task(get_axiswise_rot(q, filename))
 
 
 async def main(name_json: Optional[str] = None, context: Optional = None):
@@ -111,7 +111,7 @@ async def main(name_json: Optional[str] = None, context: Optional = None):
         input_request = all_data['Входящий request']
         expected_output_response = dict(all_data["Ожидаемый response"])
         query = await unpack_query(input_request)
-        print("Запрос принят: ", query.operation_type)
+        print("Запрос принят:", query.operation_type)
         if not os.path.isdir(query.output_dir):
             os.makedirs(query.output_dir)
         filename = expected_output_response["file"][len(query.output_dir) + 1:-4]

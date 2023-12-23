@@ -45,7 +45,7 @@ async def receive_input_response(flag: bool = False):
         try:
             channel: AbstractChannel = await connection.channel()
             queue: AbstractQueue = await channel.get_queue(routing_key)
-        except aiormq.exceptions.ChannelNotFoundEntity:
+        except exceptions.ChannelNotFoundEntity:
             channel: AbstractChannel = await connection.channel()
             queue: AbstractQueue = await channel.declare_queue(
                 routing_key, durable=True

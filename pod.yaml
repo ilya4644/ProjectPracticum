@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pointcloudtools-main-deployment
+spec:
+  containers:
+    - name: pointcloudtools-main
+      image: NAME_OF_USER/pointcloudtools-main:latest
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "250m"
+          ephemeral-storage: "1G"
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+          ephemeral-storage: "3G"
+    - name: pointcloudtools-rabbit
+      image: rabbitmq:3.12-management
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "250m"
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+      ports:
+        - containerPort: 15672
+      env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: "guest"
+        - name: RABBITMQ_DEFAULT_PASS
+          value: "guest"
+        - name: RABBITMQ_DEFAULT_VHOST
+          value: "/"

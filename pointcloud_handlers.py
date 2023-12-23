@@ -1,7 +1,8 @@
 from entities import RequestQuery, ResponseQuery
 import pathlib
 from pct.utils import rotate_point_cloud_by_axis, swap_point_cloud_file_axes,\
-    convert_ply_to_xyz, color_ply_by_height, create_point_cloud_from_bags
+    convert_ply_to_xyz, color_ply_by_height
+from pct.ros.io import create_point_cloud_from_bags
 import os
 from loguru import logger
 
