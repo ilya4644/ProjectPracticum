@@ -1,52 +1,69 @@
 import asyncio
-import json
-from typing import Optional
-#import config
 
-from aio_pika import connect_robust, RobustConnection, Message
-from aio_pika.abc import AbstractChannel, DeliveryMode
+from aio_pika import connect_robust, exceptions, Message
+from aio_pika.abc import AbstractConnection, AbstractChannel
+from dotenv import dotenv_values
+
+from entities import ResponseQuery
+from log import logger
 
 
-async def create_message(
-        output_json: bytes,
-        message_id: Optional[str] = None,
-        receive_message_id: Optional[str] = None
-):
+config = dotenv_values('.env')
+
+
+async def create_message(response_query: ResponseQuery, message_id: str) -> Message:
+    """
+    Создание сообщения
+    :param response_query: ответ на запрос
+    :param message_id: идентификатор сообщения
+    :return: сообщение
+    """
     return Message(
-        body=output_json,
+        body=response_query.model_dump_json().encode('utf-8'),
         content_type="application/json",
         content_encoding="utf-8",
-        message_id=message_id or None,
-        delivery_mode=DeliveryMode.PERSISTENT,
-reply_to=receive_message_id or None
-)
-
-
-async def send_output_response(
-        output_json: Optional[dict[str, str]] = None,
-        receive_message_id: Optional[str] = None
-):
-    connection: RobustConnection = await connect_robust(
-        host="172.17.0.2",
-        port=5672,
-        login="guest",
-        password="guest",
+        message_id=message_id,
+        delivery_mode=2
     )
 
+
+async def send_response_query(response_query: ResponseQuery, message_id: str) -> bool:
+    """
+    Отправка ответа на запрос
+    :param response_query: ответ на запрос
+    :param message_id: идентификатор сообщения
+    :return: True, если сообщение не отправлено, иначе False
+    """
+    try:
+        connection: AbstractConnection = await connect_robust(
+            host=config.get("RABBITMQ_HOST"),
+            port=int(config.get("RABBITMQ_PORT")),
+            login=config.get("RABBITMQ_LOGIN"),
+            password=config.get("RABBITMQ_PASSWORD"),
+        )
+    except exceptions.CONNECTION_EXCEPTIONS as e:
+        logger.error(str(e))
+        await asyncio.sleep(3)
+        return await send_response_query(response_query, message_id)
     async with connection:
-        routing_key: str = "output_response_queue"
+        routing_key: str = config.get("RABBITMQ_RESPONSE_QUEUE")
         channel: AbstractChannel = await connection.channel()
-        message: Message = await create_message(
-            output_json=json.dumps(output_json, indent=2).encode('utf-8'),
-            receive_message_id=receive_message_id
-        )
-        await channel.default_exchange.publish(
-            message,
-            routing_key=routing_key
-        )
-
-
-if __name__ == "__main__":
-    loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
-    loop.run_until_complete(send_output_response())
-    loop.close()
+        message: Message = await create_message(response_query, message_id)
+        try:
+            await channel.default_exchange.publish(
+                message,
+                routing_key=routing_key
+            )
+            return False
+        except exceptions.ChannelNotFoundEntity:
+            await channel.declare_queue(
+                routing_key, durable=True
+            )
+            await channel.default_exchange.publish(
+                message,
+                routing_key=routing_key
+            )
+            return False
+        except Exception as e:
+            logger.error(str(e))
+            return True

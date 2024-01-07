@@ -1,17 +1,24 @@
-from entities import RequestQuery, ResponseQuery
+import os
 import pathlib
-from pct.utils import rotate_point_cloud_by_axis, swap_point_cloud_file_axes,\
+
+from entities import RequestQuery, ResponseQuery, RequestUnbagQuery
+from pct.utils import rotate_point_cloud_by_axis, swap_point_cloud_file_axes, \
     convert_ply_to_xyz, color_ply_by_height
 from pct.ros.io import create_point_cloud_from_bags
-import os
-from loguru import logger
+from log import logger
 
 
-def get_axis_swap(q: RequestQuery, filename: str):
+def get_axis_swap(query: RequestQuery, filename: str) -> ResponseQuery:
+    """
+    Обработчик запроса на перестановку осей
+    :param query: запрос
+    :param filename: имя файла
+    :return: ответ
+    """
     try:
-        point_cloud = pathlib.Path(q.source_dir[0])
-        ax = q.params.get("ax")
-        with_ax = q.params.get("with_ax")
+        point_cloud = pathlib.Path(query.file)
+        ax = query.params.get("ax")
+        with_ax = query.params.get("with_ax")
 
         swapped_cloud = swap_point_cloud_file_axes(
             cloud=point_cloud,
@@ -20,19 +27,29 @@ def get_axis_swap(q: RequestQuery, filename: str):
             in_place=True
         )
 
-        q.output_dir = f"{q.output_dir}/{filename}.ply"
-        os.rename(str(swapped_cloud), q.output_dir)
-        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
-        return response.make_response()
+        os.rename(str(swapped_cloud), query.output_path + filename)
+        response_data = {
+            "id": query.id,
+            "operation_type": query.operation_type,
+            "file": query.output_path
+        }
+        response = ResponseQuery(**response_data)
+        return response
     except ValueError as e:
         logger.error(str(e))
 
 
-def get_axiswise_rot(q: RequestQuery, filename: str):
+def get_axiswise_rot(query: RequestQuery, filename: str) -> ResponseQuery:
+    """
+    Обработчик запроса на поворот облака точек
+    :param query: запрос
+    :param filename: имя файла
+    :return: ответ
+    """
     try:
-        point_cloud = pathlib.Path(q.source_dir[0])
-        ax = q.params.get("ax")
-        rad = q.params.get("rad")
+        point_cloud = pathlib.Path(query.file)
+        ax = query.params.get("ax")
+        rad = query.params.get("rad")
 
         rotated_cloud = rotate_point_cloud_by_axis(
             cloud=point_cloud,
@@ -41,55 +58,88 @@ def get_axiswise_rot(q: RequestQuery, filename: str):
             in_place=True
         )
 
-        q.output_dir = f"{q.output_dir}/{filename}.ply"
-        os.rename(str(rotated_cloud), q.output_dir)
-        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
-        return response.make_response()
+        os.rename(str(rotated_cloud), query.output_path + filename)
+        response_data = {
+            "id": query.id,
+            "operation_type": query.operation_type,
+            "file": query.output_path
+        }
+        response = ResponseQuery(**response_data)
+        return response
     except ValueError as e:
         logger.error(str(e))
 
 
-def get_conv_ply_xyz(q: RequestQuery, filename: str):
+def get_conv_ply_xyz(query: RequestQuery, filename: str) -> ResponseQuery:
+    """
+    Обработчик запроса на конвертацию из ply в xyz
+    :param query: запрос
+    :param filename: имя файла
+    :return: ответ
+    """
     try:
-        ply_cloud = pathlib.Path(q.source_dir[0])
+        ply_cloud = pathlib.Path(query.file)
         xyz_cloud = convert_ply_to_xyz(ply_cloud)
-        q.output_dir = f"{q.output_dir}/{filename}.xyz"
-        os.rename(str(xyz_cloud), q.output_dir)
-        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
-        return response.make_response()
+        os.rename(str(xyz_cloud), query.output_path + filename)
+        response_data = {
+            "id": query.id,
+            "operation_type": query.operation_type,
+            "file": query.output_path
+        }
+        response = ResponseQuery(**response_data)
+        return response
     except ValueError as e:
         logger.error(str(e))
 
 
-def get_height_color(q: RequestQuery, filename: str):
+def get_height_color(query: RequestQuery, filename: str) -> ResponseQuery:
+    """
+    Обработчик запроса на окраску облака точек по высоте
+    :param query: запрос
+    :param filename: имя файла
+    :return: ответ
+    """
     try:
-        point_cloud = pathlib.Path(q.source_dir[0])
-        height_axis = q.params.get("height_axis")
-        colored_cloud = color_ply_by_height(
+        point_cloud = pathlib.Path(query.file)
+        height_axis = query.params.get("height_axis")
+        color_ply_by_height(
             cloud=point_cloud,
             height_axis=height_axis,
             in_place=True
         )
-        q.output_dir = f"{q.output_dir}/{filename}.ply"
-        os.rename(str(colored_cloud), q.output_dir)
-        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
-        return response.make_response()
+        os.rename(str(point_cloud), query.output_path + filename)
+        response_data = {
+            "id": query.id,
+            "operation_type": query.operation_type,
+            "file": query.output_path
+        }
+        response = ResponseQuery(**response_data)
+        return response
     except ValueError as e:
         logger.error(str(e))
 
 
-async def get_unbag(q: RequestQuery, filename: str):
+def get_unbag(query: RequestUnbagQuery, filename: str) -> ResponseQuery:
+    """
+    Обработчик запроса на конвертацию из bag
+    :param query: запрос
+    :param filename: имя файла
+    :return: ответ
+    """
     try:
-        bags = q.source_dir
-        bags = [pathlib.Path(bag) for bag in bags]
-        output_dir = q.output_dir
-        point_cloud = create_point_cloud_from_bags(
-            bags=bags,
-            in_dir=pathlib.Path(output_dir),
+        bag_files = query.files
+        output_path = query.output_path
+        create_point_cloud_from_bags(
+            bags=bag_files,
+            in_dir=output_path,
             with_name=filename
         )
-        q.output_dir = str(point_cloud)
-        response = ResponseQuery(q.operation_id, q.operation_type, q.output_dir)
-        return response.make_response()
+        response_data = {
+            "id": query.id,
+            "operation_type": query.operation_type,
+            "file": output_path
+        }
+        response = ResponseQuery(**response_data)
+        return response
     except ValueError as e:
         logger.error(str(e))
